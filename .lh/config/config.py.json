@@ -1,0 +1,18 @@
+{
+    "sourceFile": "config/config.py",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1731052470586,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1731052470586,
+            "name": "Commit-0",
+            "content": "# config/config.py\r\n\r\nimport os\r\nfrom dotenv import load_dotenv\r\n\r\n# Load environment variables\r\nload_dotenv()\r\n\r\n# LLM Configuration\r\nLLM_CONFIG = {\r\n    \"model\": \"llama3-groq-70b-8192-tool-use-preview\",\r\n    \"base_url\": \"https://api.groq.com/openai/v1\",\r\n    \"api_key\": os.getenv(\"GROQ_API_KEY\"),\r\n    \"temperature\": 0.7,\r\n    \"max_tokens\": 4096,\r\n    \"top_p\": 1.0,\r\n    \"stream\": False,\r\n    \"n\": 1\r\n}\r\n\r\n# Agent Configuration\r\nAGENT_CONFIG = {\r\n    \"data_analyst\": {\r\n        \"role\": \"Energy Data Analyst\",\r\n        \"goal\": \"Analyze energy consumption patterns and provide detailed insights\",\r\n        \"backstory\": \"\"\"You are an experienced energy data analyst specializing in \r\n        residential energy consumption. Your expertise lies in interpreting energy \r\n        usage data and identifying consumption patterns, anomalies, and potential \r\n        areas for improvement.\"\"\"\r\n    },\r\n    \"energy_advisor\": {\r\n        \"role\": \"Energy Efficiency Advisor\",\r\n        \"goal\": \"Provide actionable recommendations for energy savings\",\r\n        \"backstory\": \"\"\"You are an energy efficiency expert with years of experience \r\n        in helping homeowners reduce their energy consumption. You provide practical, \r\n        actionable advice based on consumption patterns and best practices in \r\n        residential energy efficiency.\"\"\"\r\n    }\r\n}\r\n\r\n# Process Configuration\r\nPROCESS_CONFIG = {\r\n    \"verbose\": True,\r\n    \"max_rpm\": 10,\r\n    \"language\": \"en\",\r\n    \"cache\": True\r\n}"
+        }
+    ]
+}

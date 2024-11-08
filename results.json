@@ -1,0 +1,188 @@
+{
+  "analysis": {
+    "basic_stats": {
+      "average": 880.5,
+      "median": 850.5,
+      "min": 650.25,
+      "max": 1150.25
+    },
+    "patterns": {
+      "seasonal": {
+        "winter": {
+          "average": 950.25,
+          "months": [
+            "2023-01",
+            "2023-02",
+            "2023-12"
+          ]
+        },
+        "spring": {
+          "average": 760.83,
+          "months": [
+            "2023-03",
+            "2023-04",
+            "2023-05"
+          ]
+        },
+        "summer": {
+          "average": 940.83,
+          "months": [
+            "2023-06",
+            "2023-07",
+            "2023-08"
+          ]
+        },
+        "autumn": {
+          "average": 727.67,
+          "months": [
+            "2023-09",
+            "2023-10",
+            "2023-11"
+          ]
+        }
+      },
+      "trends": {
+        "increasing": [
+          {
+            "start_month": "2023-01",
+            "end_month": "2023-02",
+            "increase_percentage": 6.3
+          },
+          {
+            "start_month": "2023-05",
+            "end_month": "2023-06",
+            "increase_percentage": 53.4
+          },
+          {
+            "start_month": "2023-09",
+            "end_month": "2023-10",
+            "increase_percentage": 5.6
+          },
+          {
+            "start_month": "2023-10",
+            "end_month": "2023-11",
+            "increase_percentage": 14.7
+          }
+        ],
+        "decreasing": [
+          {
+            "start_month": "2023-02",
+            "end_month": "2023-03",
+            "decrease_percentage": 21.7
+
+          },
+          {
+            "start_month": "2023-03",
+            "end_month": "2023-04",
+            "decrease_percentage": 23.5
+          },
+          {
+            "start_month": "2023-04",
+            "end_month": "2023-05",
+            "decrease_percentage": 10.8
+          },
+          {
+            "start_month": "2023-06",
+            "end_month": "2023-07",
+            "decrease_percentage": 5.4
+          },
+          {
+            "start_month": "2023-07",
+            "end_month": "2023-08",
+            "decrease_percentage": 3.1
+          },
+          {
+            "start_month": "2023-08",
+            "end_month": "2023-09",
+            "decrease_percentage": 26.6
+          },
+          {
+            "start_month": "2023-11",
+            "end_month": "2023-12",
+            "decrease_percentage": 43.8
+          }
+        ]
+      }
+    },
+    "anomalies": {
+      "high": [
+        {
+          "month": "2023-01",
+          "consumption": 1150.25,
+          "reason": "Higher than average winter consumption"
+        },
+        {
+          "month": "2023-12",
+          "consumption": 1120.5,
+          "reason": "Higher than average winter consumption"
+        }
+      ],
+      "low": [
+        {
+          "month": "2023-04",
+          "consumption": 650.25,
+          "reason": "Lower than average spring consumption"
+        },
+        {
+          "month": "2023-05",
+          "consumption": 580.75,
+          "reason": "Lower than average spring consumption"
+        }
+      ]
+    },
+    "insights": [
+      {
+        "month": "2023-03",
+        "insight": "Significant drop in consumption compared to previous month, indicating potential energy-saving measures."
+      },
+      {
+        "month": "2023-06",
+        "insight": "Significant increase in consumption compared to previous month, indicating higher energy usage during summer."
+      },
+      {
+        "month": "2023-09",
+        "insight": "Significant drop in consumption compared to previous month, indicating potential energy-saving measures."
+      },
+      {
+        "month": "2023-11",
+        "insight": "Significant increase in consumption compared to previous month, indicating preparation for winter."
+      }
+    ]
+  },
+  "recommendations": {
+    "immediate_actions": [
+      "Conduct an energy audit to identify areas of energy inefficiency in the home.",
+      "Replace incandescent light bulbs with energy-efficient LED bulbs.",
+      "Adjust thermostat settings to optimize heating and cooling usage."
+    ],
+    "seasonal_recommendations": {
+      "winter": [
+        "Increase insulation to reduce heat loss.",
+        "Use energy-efficient heating systems and maintain them regularly."
+      ],
+      "spring": [
+        "Optimize HVAC usage by adjusting settings based on mild weather conditions.",
+        "Increase natural lighting by opening curtains during the day."
+      ],
+      "summer": [
+        "Use energy-efficient cooling systems and maintain them regularly.",
+        "Increase natural cooling by using shades and blinds."
+      ],
+      "autumn": [
+        "Adjust thermostat settings to optimize heating and cooling usage.",
+        "Increase natural lighting by opening curtains during the day."
+      ]
+    },
+    "long_term_improvements": [
+      "Install solar panels to reduce reliance on the grid.",
+      "Upgrade to energy-efficient appliances when replacing old ones.",
+      "Improve home insulation to reduce heat loss."
+    ],
+    "behavioral_changes": [
+      "Turn off lights, electronics, and appliances when not in use.",
+      "Use power strips to plug in electronics and turn them off with one switch.",
+      "Conduct regular energy audits to monitor and adjust energy usage."
+    ]
+  },
+  "timestamp": "2024-11-07T18:14:22.005387"
+}
