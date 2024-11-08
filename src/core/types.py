@@ -24,7 +24,7 @@ class AnalysisResult(BaseModel):
     confidence: float
 
 class AgentMetadata(BaseModel):
-    """Agent metadata model"""
+    """Agent memory_metadata model"""
     agent_type: str
     process_time: float
     token_usage: int

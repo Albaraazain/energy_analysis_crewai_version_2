@@ -12,7 +12,7 @@ class TaskDefinitions:
     @staticmethod
     def create_analysis_task(data: Dict[str, float], agent: Any) -> Task:
         """
-        Create a task for analyzing energy consumption data.
+        Create a tasks for analyzing energy consumption data.
 
         Args:
             data: Monthly consumption data
@@ -48,10 +48,10 @@ class TaskDefinitions:
     @staticmethod
     def create_recommendation_task(analysis_result: Dict, agent: Any) -> Task:
         """
-        Create a task for generating energy-saving recommendations.
+        Create a tasks for generating energy-saving recommendations.
 
         Args:
-            analysis_result: Results from the analysis task
+            analysis_result: Results from the analysis tasks
             agent: Energy Advisor agent instance
         """
         return Task(

@@ -15,7 +15,7 @@ class DataProcessor:
             normalized.append({
                 'timestamp': datetime.strptime(date_str, "%Y-%m"),
                 'consumption': float(value),
-                'metadata': {}
+                'memory_metadata': {}
             })
         return normalized
 

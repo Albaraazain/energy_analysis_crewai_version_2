@@ -85,7 +85,7 @@ class EnergyAnalyzer:
                 logger.warning("Failed to parse analysis result as JSON")
                 analysis_data = {"raw_analysis": analysis_result.raw}
 
-            # Create recommendation task
+            # Create recommendation tasks
             recommendation_task = TaskDefinitions.create_recommendation_task(
                 analysis_data,
                 self.energy_advisor

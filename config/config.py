@@ -45,3 +45,14 @@ PROCESS_CONFIG = {
     "language": "en",
     "cache": True
 }
+
+MEMORY_CONFIG = {
+    "provider": "groq",
+    "storage_dir": "data/memory"
+}
+
+DATABASE_CONFIG = {
+    "long_term_db": "sqlite:///data/long_term_memory.db"
+}
+
+

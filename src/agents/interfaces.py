@@ -35,10 +35,10 @@ class IVisualizationAgent(ABC):
 
     @abstractmethod
     async def create_visualizations(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create data visualizations"""
+        """Create data visualization"""
         pass
 
     @abstractmethod
     def export_visualizations(self, visualizations: Dict[str, Any], format: str) -> bytes:
-        """Export visualizations in specified format"""
+        """Export visualization in specified format"""
         pass
