@@ -83,8 +83,11 @@ async def test_store_memories(memory_manager, sample_entries):
 async def test_retrieve_memories(memory_manager, sample_entries):
     """Test retrieving memories from different memory systems"""
     # Store test data
-    await memory_manager.store_memory(sample_entries[0], 'long_term')
-    await memory_manager.store_memory(sample_entries[1], 'entity')
+    result = await memory_manager.store_memory(sample_entries[0], 'long_term')
+    assert result, "Failed to store in long-term memory"
+
+    result = await memory_manager.store_memory(sample_entries[1], 'entity')
+    assert result, "Failed to store in entity memory"
 
     # Test retrieval from long-term memory
     long_term_results = await memory_manager.retrieve_memories(
@@ -103,6 +106,57 @@ async def test_retrieve_memories(memory_manager, sample_entries):
     assert len(entity_results) > 0, "No results from entity memory"
 
 @pytest.mark.asyncio
+async def test_memory_updates(memory_manager, sample_entries):
+    """Test updating memories in different systems"""
+    # Store initial entries and get their IDs
+    stored_id = None
+    try:
+        # Store and get ID by searching
+        await memory_manager.store_memory(sample_entries[0], 'long_term')
+        results = await memory_manager.retrieve_memories(
+            "energy consumption",
+            memory_type='long_term',
+            limit=1
+        )
+        assert len(results) > 0, "Failed to store and retrieve memory"
+        entry = results[0]
+
+        # Update with new content
+        updates = {
+            'content': {
+                "type": "energy_reading",
+                "value": 160.5,  # Updated value
+                "unit": "kWh"
+            }
+        }
+
+        # Search for entry with original value
+        memories = await memory_manager.retrieve_memories(
+            str(sample_entries[0].content['value']),
+            memory_type='long_term'
+        )
+        assert len(memories) > 0, "Could not find original entry"
+
+        # Get the ID from memory manager's records
+        success = await memory_manager.update_memory(
+            memories[0].metadata.get('id'),  # Get ID from metadata
+            updates,
+            memory_type='long_term'
+        )
+        assert success, "Failed to update memory"
+
+        # Verify update
+        updated_memories = await memory_manager.retrieve_memories(
+            "160.5",  # Search for updated value
+            memory_type='long_term'
+        )
+        assert len(updated_memories) > 0, "Updated memory not found"
+        assert any(m.content.get('value') == 160.5 for m in updated_memories), "Memory not properly updated"
+
+    except Exception as e:
+        pytest.fail(f"Test failed with error: {str(e)}")
+
+@pytest.mark.asyncio
 async def test_cross_memory_search(memory_manager, sample_entries):
     """Test searching across different memory types"""
     # Store entries in both memory systems
@@ -117,37 +171,6 @@ async def test_cross_memory_search(memory_manager, sample_entries):
 
     assert len(long_term_results) > 0, "No results from long-term memory"
     assert len(entity_results) > 0, "No results from entity memory"
-
-@pytest.mark.asyncio
-async def test_memory_updates(memory_manager, sample_entries):
-    """Test updating memories in different systems"""
-    # Store initial entries
-    entry = sample_entries[0]
-    await memory_manager.store_memory(entry, 'long_term')
-
-    # Update the entry
-    entry_id = str(entry.timestamp.timestamp())
-    updates = {
-        'content': {
-            "type": "energy_reading",
-            "value": 160.5,  # Updated value
-            "unit": "kWh"
-        }
-    }
-
-    success = await memory_manager.update_memory(
-        entry_id,
-        updates,
-        memory_type='long_term'
-    )
-    assert success, "Failed to update memory"
-
-    # Verify update
-    results = await memory_manager.retrieve_memories(
-        "energy consumption",
-        memory_type='long_term'
-    )
-    assert any(r.content.get('value') == 160.5 for r in results)
 
 @pytest.mark.asyncio
 async def test_memory_clearing(memory_manager, sample_entries):

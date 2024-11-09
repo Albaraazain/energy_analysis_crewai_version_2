@@ -1,17 +1,14 @@
 # src/core/memory/entity.py
-
 from typing import Dict, Any, List
 from datetime import datetime
 from sqlalchemy import create_engine, Column, String, JSON, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from .base import BaseMemory, MemoryEntry
 import numpy as np
 import json
-import asyncio
+from langchain_core.messages import SystemMessage, HumanMessage
 
 Base = declarative_base()
-
 
 class EntityRecord(Base):
     """SQLAlchemy model for entity memory storage"""
@@ -26,7 +23,7 @@ class EntityRecord(Base):
     tags = Column(JSON, nullable=False)
     attributes = Column(JSON, nullable=False)
     relationships = Column(JSON, nullable=False)
-
+    embedding = Column(JSON, nullable=True)
 
 class EntityMemory(BaseMemory):
     """Implementation of entity-based memory using SQLAlchemy"""
@@ -34,41 +31,21 @@ class EntityMemory(BaseMemory):
     def __init__(self, config: Dict[str, Any]):
         """Initialize the entity memory system"""
         super().__init__(config)
-        self.engine = create_engine(config.get('entity_db', 'sqlite:///entity_memory.db'))
+        self.engine = create_engine(config.get('database_config', {}).get('entity_db', 'sqlite:///data/entity_memory.db'))
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
-        self.llm = self._initialize_llm()
-        self.embedder = self._initialize_embedder()
-
-    def _initialize_embedder(self):
-        """Initialize the Groq embedder"""
-        try:
-            from langchain_groq import ChatGroqEmbeddings
-            return ChatGroqEmbeddings(
-                model=self.config['embedder']['model'],
-                groq_api_key=self.config['groq_api_key']
-            )
-        except ImportError as e:
-            raise ImportError("Failed to import ChatGroqEmbeddings: ensure the correct package is installed.") from e
-
-    def _initialize_llm(self):
-        """Initialize LLM for text generation"""
-        try:
-            from langchain_groq import ChatGroq
-            return ChatGroq(
-                groq_api_key=self.config['groq_api_key'],
-                model_name=self.config['llm']['model']
-            )
-        except ImportError as e:
-            raise ImportError("Failed to import ChatGroq: ensure the correct package is installed.") from e
 
     async def store(self, entry: MemoryEntry) -> bool:
         """Store an entity memory entry"""
         session = self.Session()
         try:
+            # Generate unique ID and extract entity info
+            entry_id = self.generate_id()
             entity_info = await self._extract_entity_info(entry.content)
+            content_embedding = await self._generate_embedding(entry.content)
+
             record = EntityRecord(
-                id=str(entry.timestamp.timestamp()),
+                id=entry_id,
                 timestamp=entry.timestamp,
                 entity_type=entity_info['type'],
                 content=entry.content,
@@ -76,7 +53,8 @@ class EntityMemory(BaseMemory):
                 source=entry.source,
                 tags=entry.tags,
                 attributes=entity_info['attributes'],
-                relationships=entity_info['relationships']
+                relationships=entity_info['relationships'],
+                embedding=content_embedding
             )
             session.add(record)
             session.commit()
@@ -88,6 +66,67 @@ class EntityMemory(BaseMemory):
         finally:
             session.close()
 
+    async def _extract_entity_info(self, content: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract entity information from content"""
+        try:
+            content_str = str(content)
+            prompt = f"""Given this content, please extract:
+1. A single type field (string)
+2. An attributes object (key-value pairs)
+3. A relationships array (list of related entities)
+
+Content: {content_str}
+
+Return a valid JSON object with exactly these fields:
+{{
+    "type": "entity_type_here",
+    "attributes": {{"key1": "value1", "key2": "value2"}},
+    "relationships": []
+}}"""
+
+            messages = [
+                SystemMessage(content="You are a helpful assistant that extracts structured entity information."),
+                HumanMessage(content=prompt)
+            ]
+
+            response = await self.llm.agenerate([messages])
+            try:
+                entity_info = json.loads(response.generations[0][0].text)
+                # Validate and ensure required fields
+                return {
+                    'type': str(entity_info.get('type', 'unknown')),
+                    'attributes': dict(entity_info.get('attributes', {})),
+                    'relationships': list(entity_info.get('relationships', []))
+                }
+            except json.JSONDecodeError:
+                # If JSON parsing fails, try to extract just the JSON portion
+                text = response.generations[0][0].text
+                json_start = text.find('{')
+                json_end = text.rfind('}') + 1
+                if json_start >= 0 and json_end > json_start:
+                    try:
+                        entity_info = json.loads(text[json_start:json_end])
+                        return {
+                            'type': str(entity_info.get('type', 'unknown')),
+                            'attributes': dict(entity_info.get('attributes', {})),
+                            'relationships': list(entity_info.get('relationships', []))
+                        }
+                    except:
+                        pass
+
+                return {
+                    'type': 'unknown',
+                    'attributes': {},
+                    'relationships': []
+                }
+        except Exception as e:
+            print(f"Error extracting entity info: {str(e)}")
+            return {
+                'type': 'unknown',
+                'attributes': {},
+                'relationships': []
+            }
+
     async def retrieve(self, query: str, limit: int = 5) -> List[MemoryEntry]:
         """Retrieve entity memories based on semantic search"""
         session = self.Session()
@@ -97,13 +136,9 @@ class EntityMemory(BaseMemory):
             similarities = []
 
             for record in records:
-                content_embedding = await self._generate_embedding({
-                    "content": record.content,
-                    "attributes": record.attributes,
-                    "relationships": record.relationships
-                })
-                similarity = self._calculate_similarity(query_embedding, content_embedding)
-                similarities.append((record, similarity))
+                if record.embedding:  # Check if embedding exists
+                    similarity = self._calculate_similarity(query_embedding, record.embedding)
+                    similarities.append((record, similarity))
 
             similarities.sort(key=lambda x: x[1], reverse=True)
             top_records = similarities[:limit]
@@ -128,7 +163,7 @@ class EntityMemory(BaseMemory):
         """Update an existing entity memory entry"""
         session = self.Session()
         try:
-            record = session.query(EntityRecord).get(entry_id)
+            record = session.get(EntityRecord, entry_id)
             if not record:
                 return False
 
@@ -138,6 +173,7 @@ class EntityMemory(BaseMemory):
                 record.entity_type = entity_info['type']
                 record.attributes = entity_info['attributes']
                 record.relationships = entity_info['relationships']
+                record.embedding = await self._generate_embedding(updates['content'])
 
             if 'metadata' in updates:
                 record.memory_metadata = updates['metadata']
@@ -168,53 +204,3 @@ class EntityMemory(BaseMemory):
             return False
         finally:
             session.close()
-
-    async def _extract_entity_info(self, content: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract entity information from content"""
-        try:
-            content_str = str(content)
-            response = await self.llm.agenerate(
-                prompts=[
-                    f"""Analyze this content and extract:
-                    1. Entity type
-                    2. Key attributes
-                    3. Relationships to other entities
-                    Content: {content_str}
-                    Return as JSON with keys: type, attributes, relationships"""
-                ]
-            )
-            entity_info = json.loads(response.generations[0][0].text)
-            return {
-                'type': entity_info.get('type', 'unknown'),
-                'attributes': entity_info.get('attributes', {}),
-                'relationships': entity_info.get('relationships', [])
-            }
-        except Exception as e:
-            print(f"Error extracting entity info: {str(e)}")
-            return {
-                'type': 'unknown',
-                'attributes': {},
-                'relationships': []
-            }
-
-    async def _generate_embedding(self, content: Dict[str, Any]) -> List[float]:
-        """Generate embedding for content using Groq"""
-        try:
-            content_str = str(content)
-            embeddings = await self.embedder.aembed_query(content_str)
-            return embeddings
-        except Exception as e:
-            print(f"Error generating embedding: {str(e)}")
-            return []
-
-    def _calculate_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
-        """Calculate cosine similarity between embeddings"""
-        if not embedding1 or not embedding2:
-            return 0.0
-        try:
-            a = np.array(embedding1)
-            b = np.array(embedding2)
-            return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-        except Exception as e:
-            print(f"Error calculating similarity: {str(e)}")
-            return 0.0

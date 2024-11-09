@@ -5,6 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import uuid
 
 class MemoryEntry(BaseModel):
     """Model for memory entries"""
@@ -41,8 +42,10 @@ class BaseMemory(ABC):
         """Generate embedding for content using HuggingFace model"""
         try:
             content_str = str(content)
-            # Generate embedding and convert to list of floats
-            embedding = self.embedder.encode(content_str, convert_to_tensor=False).tolist()
+            # Generate embedding synchronously and convert to list of floats
+            embedding = self.embedder.encode(content_str, convert_to_tensor=False)
+            if isinstance(embedding, np.ndarray):
+                return embedding.tolist()
             return embedding
         except Exception as e:
             print(f"Error generating embedding: {str(e)}")
@@ -62,6 +65,10 @@ class BaseMemory(ABC):
         except Exception as e:
             print(f"Error calculating similarity: {str(e)}")
             return 0.0
+
+    def generate_id(self) -> str:
+        """Generate a unique ID for memory entries"""
+        return str(uuid.uuid4())
 
     @abstractmethod
     async def store(self, entry: MemoryEntry) -> bool:

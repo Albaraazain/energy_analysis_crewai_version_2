@@ -48,9 +48,9 @@ class LongTermMemory(BaseMemory):
             # Generate embedding for the content
             content_embedding = await self._generate_embedding(entry.content)
 
-            # Create record
+            # Create record with UUID
             record = MemoryRecord(
-                id=str(entry.timestamp.timestamp()),
+                id=self.generate_id(),  # Use UUID instead of timestamp
                 timestamp=entry.timestamp,
                 content=entry.content,
                 memory_metadata=entry.metadata,
@@ -112,14 +112,12 @@ class LongTermMemory(BaseMemory):
         """Update an existing memory entry"""
         session = self.Session()
         try:
-            record = session.query(MemoryRecord).get(entry_id)
+            record = session.get(MemoryRecord, entry_id)
             if not record:
                 return False
 
-            # Update fields based on provided updates
             if 'content' in updates:
                 record.content = updates['content']
-                # Regenerate derived fields for new content
                 record.summary = await self._generate_summary(updates['content'])
                 record.importance_score = await self._calculate_importance(updates['content'])
                 record.embedding = await self._generate_embedding(updates['content'])

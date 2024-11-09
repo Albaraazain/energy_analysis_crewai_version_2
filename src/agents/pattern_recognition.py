@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import pandas as pd
 import numpy as np
+from crewai import Agent
 from scipy import stats
 from .base import BaseAgent, AgentResult
 from .interfaces import IAnalysisAgent

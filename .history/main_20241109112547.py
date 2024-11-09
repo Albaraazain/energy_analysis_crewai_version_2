@@ -2,8 +2,6 @@ import os
 import asyncio
 from typing import Dict, Any
 from datetime import datetime, timedelta
-
-import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
