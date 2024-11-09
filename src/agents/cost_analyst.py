@@ -26,7 +26,14 @@ class CostAnalystAgent(BaseAgent, IAnalysisAgent, IRecommendationAgent):
     async def analyze_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze the provided data for cost insights"""
         try:
+            # Create DataFrame and setup datetime index
             df = pd.DataFrame(data['data'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df.set_index('timestamp', inplace=True)
+
+            # Verify the data is properly formatted
+            if not isinstance(df.index, pd.DatetimeIndex):
+                raise ValueError("Failed to create proper datetime index")
 
             analysis_results = {
                 'rate_analysis': self._analyze_rate_plans(df),

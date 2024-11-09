@@ -1,48 +1,14 @@
-# tests/conftest.py
-import asyncio
-import os
-from typing import Dict, Any
-from pathlib import Path
-import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
+from unittest.mock import Mock
 import numpy as np
+import pandas as pd
 import pytest
 from dotenv import load_dotenv
+from langchain_groq import ChatGroq
 
-# Configure pytest-asyncio to use asyncio as the default event loop
-pytest.register_assert_rewrite('pytest_asyncio')
+# Load environment variables
+load_dotenv(override=True)
 
-
-def pytest_configure(config):
-    """
-    Pytest configuration function to set up the test environment
-    """
-    # Load environment variables
-    load_dotenv(override=True)
-
-    # Register async marker
-    config.addinivalue_line(
-        "markers",
-        "asyncio: mark test as requiring asyncio"
-    )
-
-    # Verify required environment variables
-    if not os.getenv('GROQ_API_KEY'):
-        raise EnvironmentError(
-            "GROQ_API_KEY not found in environment variables. "
-            "Please ensure your .env file contains this variable."
-        )
-
-# Configure asyncio plugin
-def pytest_addoption(parser):
-    parser.addini(
-        'asyncio_mode',
-        'run async tests in "strict" mode',
-        type="string",
-        default="strict"
-    )
-
-# Set up async fixture loop scope
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for each test case."""
@@ -51,63 +17,80 @@ def event_loop():
     yield loop
     loop.close()
 
-
-@pytest.fixture
-def sample_config() -> Dict[str, Any]:
-    """Provide sample configuration for testing"""
-    return {
-        'llm': {
-            'model': 'llama3-groq-70b-8192-tool-use-preview',
-            'base_url': 'https://api.groq.com/openai/v1',
-            'temperature': 0.7
-        },
-        'memory': {
-            'provider': 'groq',
-            'storage_dir': 'test_storage'
-        },
-        'process': {
-            'type': 'hierarchical',
-            'verbose': True
-        },
-        'task_queue': {
-            'max_retries': 3,
-            'timeout': 300
-        }
-    }
-
-
-@pytest.fixture
-def sample_energy_data() -> pd.DataFrame:
-    """Generate sample energy consumption data"""
-    dates = pd.date_range(
-        start='2024-01-01',
-        end='2024-12-31',
-        freq='H'
-    )
-
-    # Generate realistic consumption patterns
-    base_load = 0.5 + np.random.normal(0, 0.1, len(dates))
-    daily_pattern = np.sin(np.pi * dates.hour / 12) * 0.3
-    seasonal_pattern = np.sin(np.pi * dates.dayofyear / 182.5) * 0.2
-
-    consumption = (base_load + daily_pattern + seasonal_pattern) * 1000
-    consumption = np.maximum(consumption, 0)  # Ensure non-negative values
-
-    return pd.DataFrame({
-        'timestamp': dates,
-        'consumption': consumption
-    })
-
-
 @pytest.fixture
 def mock_llm():
     """Mock LLM for testing"""
+    mock = Mock(spec=ChatGroq)
+    mock.temperature = 0.7
+    mock.model_name = "llama3-groq-70b-8192-tool-use-preview"
+    return mock
 
-    class MockLLM:
-        async def generate(self, prompts):
-            return [{'text': 'Mock response'}]
+@pytest.fixture
+def base_config():
+    """Base configuration for testing"""
+    return {
+        'verbose': True,
+        'tools_enabled': True,
+        'max_retries': 3,
+        'timeout': 300,
+        'memory': {
+            'type': 'short_term',
+            'capacity': 10
+        }
+    }
 
-        async def embed(self, text):
-            return [0.1] * 128
+@pytest.fixture
+def sample_energy_data():
+    """Generate sample energy consumption data"""
+    dates = pd.date_range(
+        start=datetime(2024, 1, 1),
+        end=datetime(2024, 1, 7),
+        freq='H'
+    )
 
-    return MockLLM()
+    data = []
+    for date in dates:
+        # Create synthetic data with known patterns
+        hour = date.hour
+        day_factor = 1 + 0.5 * np.sin(2 * np.pi * hour / 24)
+
+        # Base consumption with controlled randomness
+        consumption = 30 * day_factor * (0.9 + 0.2 * np.random.RandomState(42).random())
+
+        # Temperature with daily pattern
+        temperature = 68 + 10 * np.sin(2 * np.pi * hour / 24)
+
+        data.append({
+            "timestamp": date.isoformat(),
+            "consumption": round(consumption, 2),
+            "rate": 0.12 + 0.04 * (hour >= 14 and hour <= 19),  # Peak rate 2-7 PM
+            "temperature": round(temperature, 1)
+        })
+
+    return {"data": data}
+
+@pytest.fixture
+def sample_dataframe(sample_energy_data):
+    """Convert sample data to DataFrame"""
+    df = pd.DataFrame(sample_energy_data['data'])
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df.set_index('timestamp', inplace=True)
+    return df
+
+@pytest.fixture
+def mock_agent_result():
+    """Mock successful agent result"""
+    return {
+        'status': 'success',
+        'data': {
+            'patterns': {},
+            'metrics': {},
+        },
+        'metadata': {
+            'timestamp': datetime.now().isoformat(),
+            'analysis_quality': {
+                'completeness': 1.0,
+                'reliability': 0.9
+            }
+        }
+    }

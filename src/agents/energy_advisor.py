@@ -1,5 +1,3 @@
-# src/agents/energy_advisor.py
-
 from crewai import Agent
 from typing import Dict, List
 import json
@@ -8,7 +6,6 @@ class EnergyAdvisorAgent:
     """
     Agent responsible for providing energy-saving recommendations based on analysis.
     """
-
 
     @staticmethod
     def create_agent(llm) -> Agent:
@@ -44,6 +41,7 @@ class EnergyAdvisorAgent:
         Returns:
             Dictionary of seasonal recommendations
         """
+        # Default recommendations for each season
         recommendations = {
             "summer": [
                 "Use ceiling fans to improve air circulation",
@@ -65,12 +63,20 @@ class EnergyAdvisorAgent:
             ]
         }
 
-        # Identify the season with the highest consumption
-        highest_season = max(seasonal_data.items(), key=lambda x: x[1])[0]
+        # Identify the season with highest consumption
+        if seasonal_data:
+            highest_season = max(seasonal_data.items(), key=lambda x: x[1])[0]
+        else:
+            highest_season = 'summer'  # Default if no data provided
+
+        # Select appropriate recommendations
+        season_recommendations = recommendations.get(
+            highest_season if highest_season in recommendations else 'summer'
+        )
 
         return {
             "priority_season": highest_season,
-            "recommendations": recommendations[highest_season],
+            "recommendations": season_recommendations,
             "general_recommendations": [
                 "Regular equipment maintenance",
                 "Monitor daily consumption patterns",
@@ -78,7 +84,6 @@ class EnergyAdvisorAgent:
                 "Implement a home energy monitoring system"
             ]
         }
-
 
     @staticmethod
     def generate_consumption_recommendations(analysis_results: Dict) -> Dict:
@@ -97,7 +102,26 @@ class EnergyAdvisorAgent:
             "behavioral_changes": []
         }
 
-        # Add recommendations based on trend
+        # Default recommendations for empty or minimal analysis
+        default_recommendations = {
+            "immediate_actions": [
+                "Monitor and record daily energy usage",
+                "Check thermostat settings",
+                "Inspect for obvious energy waste"
+            ],
+            "long_term_actions": [
+                "Consider energy audit",
+                "Plan for regular maintenance",
+                "Research energy-efficient upgrades"
+            ],
+            "behavioral_changes": [
+                "Develop energy-conscious habits",
+                "Create equipment usage schedule",
+                "Regular energy consumption monitoring"
+            ]
+        }
+
+        # Add recommendations based on trend if available
         if analysis_results.get("trend") == "increasing":
             recommendations["immediate_actions"].extend([
                 "Conduct an energy audit",
@@ -110,7 +134,7 @@ class EnergyAdvisorAgent:
                 "Evaluate insulation improvements"
             ])
 
-        # Add recommendations for anomalies
+        # Add recommendations for anomalies if present
         if analysis_results.get("anomalies"):
             recommendations["immediate_actions"].extend([
                 "Investigate unusual consumption periods",
@@ -125,5 +149,10 @@ class EnergyAdvisorAgent:
             "Regular monitoring of energy consumption",
             "Educate household members about energy conservation"
         ])
+
+        # If no specific recommendations were generated, use defaults
+        for key in recommendations:
+            if not recommendations[key]:
+                recommendations[key] = default_recommendations[key]
 
         return recommendations
